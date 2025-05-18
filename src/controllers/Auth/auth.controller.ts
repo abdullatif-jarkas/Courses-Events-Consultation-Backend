@@ -9,7 +9,7 @@ import {
   resetPasswordSchema,
   forgotPasswordSchema,
 } from "@/validators/userSchema";
-import { JWT_SECRET } from "@/config/config";
+import { JWT_REFRESH_SECRET } from "@/config/config";
 import asyncHandler from "express-async-handler";
 import { sendEmail } from "@/utils/sendEmail";
 import {
@@ -96,70 +96,93 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
  * @route POST /api/auth/login
  */
 
-export const login: RequestHandler = asyncHandler(
-  async (req: Request, res: Response) => {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        status: "error",
-        message: "Invalid input data",
-        errors: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+export const login: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      status: "error",
+      message: "Invalid input data",
+      errors: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
 
-    const { email, password } = parsed.data;
-    const user = await User.findOne({ email });
+  const { email, password } = parsed.data;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404).json({
+      status: "error",
+      message: "User not found",
+    });
+    return;
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password as string);
+  if (!isPasswordValid) {
+    res.status(401).json({
+      status: "error",
+      message: "Invalid credentials",
+    });
+    return;
+  }
+
+  const accessToken = generateAccessToken(user._id, user.role);
+  const refreshToken = generateRefreshToken(user._id);
+
+  setRefreshTokenCookie(res, refreshToken);
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged in successfully",
+    data: {
+      accessToken,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+      },
+    },
+  });
+});
+
+/** @description Refresh token
+ * @returns {Promise<void>}
+ * @route POST /api/auth/refresh-token
+ */
+
+export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
+  const token = req.cookies.refreshToken;
+
+  if (!token) {
+    res.status(401).json({ status: "error", message: "No refresh token" });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
-      res.status(404).json({
-        status: "error",
-        message: "User not found",
-      });
+      res.status(401).json({ status: "error", message: "User not found" });
       return;
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.password as string
-    );
-    if (!isPasswordValid) {
-      res.status(401).json({
-        status: "error",
-        message: "Invalid Credentials",
-      });
-      return;
-    }
-
-    const accessToken = generateAccessToken(user._id, user.role);
-    const refreshToken = generateRefreshToken(user._id);
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000, //? 15 Minutes
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, //? 7 Days
-    });
+    const newAccessToken = generateAccessToken(user._id, user.role);
 
     res.status(200).json({
       status: "success",
+      message: "Access token refreshed",
       data: {
-        user: {
-          _id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-          role: user.role,
-        },
+        accessToken: newAccessToken,
       },
     });
+  } catch (err) {
+    res.status(403).json({ status: "error", message: "Invalid refresh token" });
   }
-);
+});
 
 /** @description Logout
  * @returns {Promise<void>}
@@ -182,6 +205,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
  */
 
 import crypto from "crypto";
+import { setRefreshTokenCookie } from "@/utils/setRefreshTokenCookie";
 
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
@@ -352,45 +376,4 @@ export const resetPassword = asyncHandler(
 );
 
 
-/** @description Refresh token
- * @returns {Promise<void>}
- * @route POST /api/auth/refresh-token
- */
 
-export const refreshToken = asyncHandler(
-  async (req: Request, res: Response) => {
-    const token = req.cookies.refreshToken;
-
-    if (!token) {
-      res.status(401).json({ status: "error", message: "No refresh token" });
-      return;
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-      const user = await User.findById(decoded.userId);
-
-      if (!user) {
-        res.status(401).json({ status: "error", message: "User not found" });
-        return;
-      }
-
-      const newAccessToken = generateAccessToken(user._id, user.role);
-
-      res.cookie("accessToken", newAccessToken, {
-        httpOnly: true,
-        sameSite: "strict",
-        maxAge: 15 * 60 * 1000,
-      });
-
-      res.status(200).json({
-        status: "success",
-        message: "Access token refreshed",
-      });
-    } catch (err) {
-      res
-        .status(403)
-        .json({ status: "error", message: "Invalid refresh token" });
-    }
-  }
-);

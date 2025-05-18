@@ -8,9 +8,10 @@ import {
   refreshToken,
   logout,
 } from "@/controllers/Auth/auth.controller";
+import { loginLimiter } from "@/middlewares/ratelimiter";
 
 authRouter.post("/register", register);
-authRouter.post("/login", login);
+authRouter.post("/login", loginLimiter, login);
 authRouter.post("/logout", logout);
 authRouter.post("/forgot-password", forgotPassword);
 authRouter.post("/reset-password", resetPassword);

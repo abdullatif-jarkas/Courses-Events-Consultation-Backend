@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { JWT_SECRET } from "@/config/config";
+import { JWT_ACCESS_SECRET } from "@/config/config";
 
 declare module "express" {
   interface Request {
@@ -13,22 +13,27 @@ export const verifyToken = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.cookies.accessToken;
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    res.status(401).json({ message: "Unauthorized: No token provided" });
+    res.status(401).json({
+      status: "error",
+      message: "Unauthorized: No token provided",
+    });
     return;
   }
 
-  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
-    if (err) {
-      res.status(401).json({ message: "Unauthorized: Invalid token" });
-      return;
-    }
-
-    req.user = decoded as JwtPayload;
+  try {
+    const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    res.status(401).json({
+      status: "error",
+      message: "Unauthorized: Invalid token",
+    });
+  }
 };
 
 export default verifyToken;

@@ -11,6 +11,7 @@ import recordedCourseRoutes from "./routes/recordedCourse.routes";
 import inPersonCourseRoutes from "./routes/inPersonCourse.routes";
 import consultationRoutes from "./routes/consultation.routes";
 import userRoutes from "./routes/user.routes";
+import { apiLimiter } from "./middlewares/ratelimiter";
 
 //? Middleware
 app.use(
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(helmet());
 app.disable("x-powered-by");
 app.use(cookieParser());
+app.use("/api/", apiLimiter); // حماية عامة لكل الراوتات
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));

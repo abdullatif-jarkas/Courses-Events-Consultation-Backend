@@ -1,4 +1,4 @@
-import { JWT_SECRET } from "@/config/config";
+import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from "@/config/config";
 import jwt from "jsonwebtoken";
 
 export function generateOTP(length: number = 6): string {
@@ -13,9 +13,9 @@ export function generateExpiryMinutes(minutes: number): Date {
 
 
 export const generateAccessToken = (userId: string, role: string) => {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: "15m" });
+  return jwt.sign({ userId, role }, JWT_ACCESS_SECRET, { expiresIn: "15m" });
 };
 
 export const generateRefreshToken = (userId: string) => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
 };
