@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import { Consultation } from "@/models/consultation.model";
+import { Consultation } from "@/models/consultations/consultation.model";
 
 /**
  * @route   POST /api/consultations
@@ -56,33 +56,37 @@ export const getAvailableConsultations = asyncHandler(
  * @route   PUT /api/consultations/book/:id
  * @access  Private (User)
  */
-export const bookConsultation = asyncHandler(async (req: Request, res: Response) => {
-  const consultation = await Consultation.findById(req.params.id);
+export const bookConsultation = asyncHandler(
+  async (req: Request, res: Response) => {
+    const consultation = await Consultation.findById(req.params.id);
 
-  if (!consultation || consultation.status !== "available") {
-    res.status(400).json({ status: "error", message: "Consultation not available" });
-    return;
-  }
+    if (!consultation || consultation.status !== "available") {
+      res
+        .status(400)
+        .json({ status: "error", message: "Consultation not available" });
+      return;
+    }
 
-  const { paymentMethod } = req.body;
+    const { paymentMethod } = req.body;
 
-  if (!["internal", "cash"].includes(paymentMethod)) {
-    res.status(400).json({
-      status: "error",
-      message: "This method is only allowed for cash or internal transfer.",
+    if (!["internal", "cash"].includes(paymentMethod)) {
+      res.status(400).json({
+        status: "error",
+        message: "This method is only allowed for cash or internal transfer.",
+      });
+      return;
+    }
+
+    consultation.userId = req.user!.userId;
+    consultation.status = "booked";
+    consultation.paymentStatus = "pending"; // يتم تأكيدها يدويًا من قبل الإدارة لاحقًا
+    consultation.paymentMethod = paymentMethod;
+
+    await consultation.save();
+
+    res.status(200).json({
+      status: "success",
+      data: consultation,
     });
-    return;
   }
-
-  consultation.userId = req.user!.userId;
-  consultation.status = "booked";
-  consultation.paymentStatus = "pending"; // يتم تأكيدها يدويًا من قبل الإدارة لاحقًا
-  consultation.paymentMethod = paymentMethod;
-
-  await consultation.save();
-
-  res.status(200).json({
-    status: "success",
-    data: consultation,
-  });
-});
+);
