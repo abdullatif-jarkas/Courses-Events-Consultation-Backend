@@ -1,5 +1,5 @@
 import { IInPersonCourse } from "@/types/courses";
-import mongoose, { Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 
 const InPersonCourseSchema: Schema = new Schema<IInPersonCourse>(
   {

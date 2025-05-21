@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import { InPersonCourse } from "../../models/inPersonCourse.model";
-import { Course } from "../../models/course.model";
+import { InPersonCourse } from "../../models/courses/inPersonCourse.model";
+import { Course } from "../../models/courses/course.model";
 import { Types } from "mongoose";
 
 export const createInPersonCourse = asyncHandler(

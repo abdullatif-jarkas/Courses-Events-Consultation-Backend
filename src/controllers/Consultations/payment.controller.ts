@@ -1,5 +1,5 @@
-import { ConsultationBooking } from "@/models/consultaionBooking.model";
-import { Consultation } from "@/models/consultation.model";
+import { ConsultationBooking } from "@/models/consultations/consultaionBooking.model";
+import { Consultation } from "@/models/consultations/consultation.model";
 import { stripe } from "@/utils/stripe";
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
@@ -92,12 +92,6 @@ export const createStripeCheckoutSession = asyncHandler(
 export const verifyPayment = asyncHandler(
   async (req: Request, res: Response) => {
     const { session_id, consultationId } = req.query;
-    console.log("=========");
-    console.log("session: ", session_id);
-    console.log("=========");
-    console.log("=========");
-    console.log("consultationID: ", consultationId);
-    console.log("=========");
     if (!session_id || !consultationId) {
       res.status(400).json({
         status: "error",
@@ -176,21 +170,21 @@ export const getPaymentHistory = asyncHandler(
       // Find all bookings for this user
       const bookings = await ConsultationBooking.find({ userId })
         .populate({
-          path: 'consultationId',
-          select: 'consultationType scheduledAt price'
+          path: "consultationId",
+          select: "consultationType scheduledAt price",
         })
         .sort({ createdAt: -1 });
 
       res.status(200).json({
         status: "success",
         count: bookings.length,
-        data: bookings
+        data: bookings,
       });
     } catch (error) {
       console.error("Error fetching payment history:", error);
       res.status(500).json({
         status: "error",
-        message: "Failed to fetch payment history"
+        message: "Failed to fetch payment history",
       });
     }
   }
@@ -207,25 +201,25 @@ export const getAllPayments = asyncHandler(
       // Find all bookings
       const bookings = await ConsultationBooking.find()
         .populate({
-          path: 'consultationId',
-          select: 'consultationType scheduledAt price'
+          path: "consultationId",
+          select: "consultationType scheduledAt price",
         })
         .populate({
-          path: 'userId',
-          select: 'fullName email'
+          path: "userId",
+          select: "fullName email",
         })
         .sort({ createdAt: -1 });
 
       res.status(200).json({
         status: "success",
         count: bookings.length,
-        data: bookings
+        data: bookings,
       });
     } catch (error) {
       console.error("Error fetching all payments:", error);
       res.status(500).json({
         status: "error",
-        message: "Failed to fetch payments"
+        message: "Failed to fetch payments",
       });
     }
   }

@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import { Course } from "@/models/course.model";
+import { Course } from "@/models/courses/course.model";
 import { Types } from "mongoose";
-import { RecordedCourse } from "@/models/recordedCourse.model";
+import { RecordedCourse } from "@/models/courses/recordedCourse.model";
 
 function detectFileType(mimetype: string): "video" | "pdf" | "image" | "other" {
   if (mimetype.startsWith("video/")) return "video";
@@ -163,10 +163,8 @@ export const deleteRecordedCourse = asyncHandler(
     await Course.findByIdAndDelete(recordedCourse.courseId);
     await RecordedCourse.findByIdAndDelete(id);
 
-    res
-      .status(200)
-      .json({
-        message: "Recorded course and related course deleted successfully",
-      });
+    res.status(200).json({
+      message: "Recorded course and related course deleted successfully",
+    });
   }
 );
