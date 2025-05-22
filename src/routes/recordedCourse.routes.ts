@@ -1,4 +1,11 @@
-import { createRecordedCourseWithFiles, deleteRecordedCourse, getAllRecordedCourses, getSingleRecordedCourse, updateRecordedCourse } from "@/controllers/Courses/recordedCourse.controller";
+import {
+  createRecordedCourseWithFiles,
+  deleteRecordedCourse,
+  getAllRecordedCourses,
+  getSingleRecordedCourse,
+  updateRecordedCourse,
+} from "@/controllers/Courses/recordedCourse.controller";
+import { createRecordedCourseBooking, verifyRecordedCoursePayment } from "@/controllers/Courses/recordedCourseBooking.controller";
 import verifyToken from "@/middlewares/auth.middleware";
 import { authorizeRoles } from "@/middlewares/role.middleware";
 import { Router } from "express";
@@ -20,14 +27,26 @@ const recordedCourseRoutes = Router();
 
 recordedCourseRoutes
   .route("/")
-  .post(verifyToken, authorizeRoles("admin"), upload.array("files"), createRecordedCourseWithFiles)
+  .post(
+    verifyToken,
+    authorizeRoles("admin"),
+    upload.array("files"),
+    createRecordedCourseWithFiles
+  )
   .get(getAllRecordedCourses);
-
 
 recordedCourseRoutes
   .route("/:id")
   .get(getSingleRecordedCourse)
-  .put(verifyToken, authorizeRoles("admin"), upload.array("files"), updateRecordedCourse)
-  .delete(verifyToken, authorizeRoles("admin"), deleteRecordedCourse)
+  .put(
+    verifyToken,
+    authorizeRoles("admin"),
+    upload.array("files"),
+    updateRecordedCourse
+  )
+  .delete(verifyToken, authorizeRoles("admin"), deleteRecordedCourse);
+
+recordedCourseRoutes.post("/book", verifyToken, createRecordedCourseBooking);
+recordedCourseRoutes.post("/verify-payment", verifyToken, verifyRecordedCoursePayment);
 
 export default recordedCourseRoutes;
