@@ -75,10 +75,6 @@ export const bookInPersonCourse = asyncHandler(
           },
           expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // انتهاء الصلاحية بعد 30 دقيقة
         });
-
-        console.log("============User============")
-        console.log(req.user)
-        console.log("============User============")
         // إنشاء سجل الحجز في قاعدة البيانات (حالة معلقة)
         await InPersonCourseBooking.create({
           userId: req.user!.userId,
