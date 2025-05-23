@@ -12,6 +12,7 @@ import inPersonCourseRoutes from "./routes/inPersonCourse.routes";
 import consultationRoutes from "./routes/consultation.routes";
 import userRoutes from "./routes/user.routes";
 import { apiLimiter } from "./middlewares/rateLimiter";
+import contactRoutes from "./routes/contact.routes";
 
 //? Middleware
 app.use(
@@ -38,5 +39,6 @@ app.use("/api/in-person-courses", inPersonCourseRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/consultations", consultationRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/contact", contactRoutes);
 
 export default app;

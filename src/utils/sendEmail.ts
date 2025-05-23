@@ -20,6 +20,6 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     await transporter.sendMail(mailOptions);
   } catch (err) {
     console.error("Error sending email:", err);
-    throw err; // Re-throw the error to handle it in the calling function
+    throw err;
   }
 };
