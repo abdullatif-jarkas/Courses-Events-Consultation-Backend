@@ -13,7 +13,7 @@ export function generateExpiryMinutes(minutes: number): Date {
 
 
 export const generateAccessToken = (userId: string, role: string) => {
-  return jwt.sign({ userId, role }, JWT_ACCESS_SECRET, { expiresIn: "15m" });
+  return jwt.sign({ userId, role }, JWT_ACCESS_SECRET, { expiresIn: "1h" });
 };
 
 export const generateRefreshToken = (userId: string) => {

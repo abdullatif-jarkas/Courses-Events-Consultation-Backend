@@ -8,6 +8,11 @@ const InPersonCourseSchema: Schema = new Schema<IInPersonCourse>(
       ref: "Course",
       required: true,
     },
+    inPersonCourseId: {
+      type: Schema.Types.ObjectId,
+      ref: "InPersonCourse",
+      required: true,
+    },
     startDate: {
       type: Date,
       required: true,
@@ -24,4 +29,7 @@ const InPersonCourseSchema: Schema = new Schema<IInPersonCourse>(
   { timestamps: true }
 );
 
-export const InPersonCourse = model<IInPersonCourse>("InPersonCourse",InPersonCourseSchema);
+export const InPersonCourse = model<IInPersonCourse>(
+  "InPersonCourse",
+  InPersonCourseSchema
+);

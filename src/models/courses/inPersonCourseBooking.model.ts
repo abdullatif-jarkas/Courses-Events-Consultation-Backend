@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IInPersonCourseBooking extends Document {
   userId: mongoose.Types.ObjectId;
-  courseId: mongoose.Types.ObjectId;
+  courseId: mongoose.Schema.Types.ObjectId;
+  inPersonCourseId: mongoose.Schema.Types.ObjectId;
   paymentMethod: "stripe" | "cash" | "internal";
   paymentStatus: "pending" | "paid" | "failed";
   status: "pending" | "confirmed" | "cancelled";
@@ -15,6 +16,7 @@ const inPersonCourseBookingSchema = new Schema<IInPersonCourseBooking>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     courseId: { type: Schema.Types.ObjectId, ref: "InPersonCourse", required: true },
+    inPersonCourseId: { type: Schema.Types.ObjectId, ref: "InPersonCourse", required: true },
     paymentMethod: {
       type: String,
       enum: ["stripe", "cash", "internal"],

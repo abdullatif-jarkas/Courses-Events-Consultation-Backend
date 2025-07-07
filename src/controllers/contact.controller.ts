@@ -61,7 +61,7 @@ export const sendContactForm = asyncHandler(
           <body>
             <div class="container">
               <div class="header">
-                <h2>رسالة جديدة من نموذج الاتصال</h2>
+                <h2>رسالة جديدة من فورم التواصل</h2>
               </div>
               <div class="content">
                 <p><strong>الاسم:</strong> ${name}</p>

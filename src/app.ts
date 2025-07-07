@@ -13,6 +13,7 @@ import consultationRoutes from "./routes/consultation.routes";
 import userRoutes from "./routes/user.routes";
 import { apiLimiter } from "./middlewares/rateLimiter";
 import contactRoutes from "./routes/contact.routes";
+import userContentRoutes from "./routes/userContent.routes";
 
 //? Middleware
 app.use(
@@ -40,5 +41,6 @@ app.use("/api/events", eventRoutes);
 app.use("/api/consultations", consultationRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/user-content", userContentRoutes);
 
 export default app;

@@ -19,6 +19,7 @@ export interface ICourse extends Document {
 //? For In Person Courses
 export interface IInPersonCourse extends Document {
   courseId: Types.ObjectId;
+  inPersonCourseId: Types.ObjectId;
   startDate: Date;
   endDate: Date;
   location: string;

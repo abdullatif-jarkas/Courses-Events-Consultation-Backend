@@ -15,41 +15,29 @@ export const bookInPersonCourse = asyncHandler(
     const { paymentMethod, inPersonCourseId } = req.body;
 
     if (!Types.ObjectId.isValid(inPersonCourseId)) {
-      res.status(400).json({
-        status: "error",
-        message: "معرف الدورة غير صالح",
-      });
+      res.status(400).json({ status: "error", message: "معرف الدورة غير صالح" });
       return;
     }
 
-    // 1. التحقق من وجود الدورة الحضورية
+    // ✅ 1. تحقق من وجود الدورة الحضورية
     const inPersonCourse = await InPersonCourse.findById(inPersonCourseId);
     if (!inPersonCourse) {
-      res.status(404).json({
-        status: "error",
-        message: "الدورة الحضورية غير موجودة",
-      });
+      res.status(404).json({ status: "error", message: "الدورة الحضورية غير موجودة" });
       return;
     }
 
-    // 2. الحصول على معلومات الدورة
+    // ✅ 2. الحصول على الكورس الأساسي المرتبط بالدورة الحضورية
     const course = await Course.findById(inPersonCourse.courseId);
     if (!course) {
-      res.status(404).json({
-        status: "error",
-        message: "معلومات الدورة غير موجودة",
-      });
+      res.status(404).json({ status: "error", message: "معلومات الكورس غير موجودة" });
       return;
     }
-    // استخدام toString() للحصول على معرفات كسلاسل نصية
-    const courseIdStr = (course._id as Types.ObjectId).toString();
-    const inPersonCourseIdStr = (
-      inPersonCourse._id as Types.ObjectId
-    ).toString();
 
-    // 3. التحقق من طريقة الدفع
+    const courseIdStr = course._id.toString();
+    const inPersonCourseIdStr = inPersonCourse._id.toString();
+
+    // ✅ 3. Stripe الدفع عبر 
     if (paymentMethod === "stripe") {
-      // إنشاء جلسة دفع Stripe
       try {
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
@@ -58,10 +46,8 @@ export const bookInPersonCourse = asyncHandler(
             {
               price_data: {
                 currency: "usd",
-                product_data: {
-                  name: `Course: ${course.title}`,
-                },
-                unit_amount: course.price * 100, // السعر بالسنت
+                product_data: { name: `Course: ${course.title}` },
+                unit_amount: course.price * 100,
               },
               quantity: 1,
             },
@@ -73,9 +59,9 @@ export const bookInPersonCourse = asyncHandler(
             inPersonCourseId: inPersonCourseIdStr,
             userId: req.user!.userId,
           },
-          expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // انتهاء الصلاحية بعد 30 دقيقة
+          expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
         });
-        // إنشاء سجل الحجز في قاعدة البيانات (حالة معلقة)
+
         await InPersonCourseBooking.create({
           userId: req.user!.userId,
           courseId: course._id,
@@ -84,15 +70,10 @@ export const bookInPersonCourse = asyncHandler(
           paymentStatus: "pending",
           status: "pending",
           stripeSessionId: session.id,
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 دقيقة من الآن
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
         });
 
-        // إرجاع رابط جلسة الدفع
-        res.status(200).json({
-          status: "success",
-          sessionId: session.id,
-          url: session.url,
-        });
+        res.status(200).json({ status: "success", sessionId: session.id, url: session.url });
       } catch (error) {
         console.error("خطأ في إنشاء جلسة الدفع:", error);
         res.status(500).json({
@@ -102,7 +83,7 @@ export const bookInPersonCourse = asyncHandler(
         });
       }
     } else if (["external", "cash"].includes(paymentMethod)) {
-      // إنشاء حجز بطريقة دفع خارجية أو نقدية
+      // ✅ طريقة دفع أخرى
       const booking = await InPersonCourseBooking.create({
         userId: req.user!.userId,
         courseId: course._id,
@@ -118,10 +99,7 @@ export const bookInPersonCourse = asyncHandler(
         data: booking,
       });
     } else {
-      res.status(400).json({
-        status: "error",
-        message: "طريقة دفع غير صالحة",
-      });
+      res.status(400).json({ status: "error", message: "طريقة دفع غير صالحة" });
     }
   }
 );
@@ -135,10 +113,7 @@ export const verifyInPersonCoursePayment = asyncHandler(
     const { session_id } = req.body;
 
     if (!session_id || typeof session_id !== "string") {
-      res.status(400).json({
-        status: "error",
-        message: "معرف الجلسة مطلوب",
-      });
+      res.status(400).json({ status: "error", message: "معرف الجلسة مطلوب" });
       return;
     }
 
@@ -157,10 +132,7 @@ export const verifyInPersonCoursePayment = asyncHandler(
         );
 
         if (!updatedBooking) {
-          res.status(404).json({
-            status: "error",
-            message: "سجل الحجز غير موجود",
-          });
+          res.status(404).json({ status: "error", message: "سجل الحجز غير موجود" });
           return;
         }
 
@@ -169,13 +141,9 @@ export const verifyInPersonCoursePayment = asyncHandler(
           message: "تم تأكيد الدفع بنجاح",
           booking: updatedBooking,
         });
-        return;
+      } else {
+        res.status(400).json({ status: "error", message: "لم يتم الدفع بعد" });
       }
-
-      res.status(400).json({
-        status: "error",
-        message: "لم يتم الدفع بعد",
-      });
     } catch (error) {
       console.error("خطأ في التحقق من الدفع:", error);
       res.status(500).json({
