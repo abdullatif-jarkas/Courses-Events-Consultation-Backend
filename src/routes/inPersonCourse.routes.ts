@@ -1,4 +1,10 @@
-import { bookInPersonCourse, verifyInPersonCoursePayment } from "@/controllers/Courses/coursePayments.controller";
+import {
+  bookInPersonCourse,
+  verifyInPersonCoursePayment,
+  handleStripeWebhook,
+  cleanupExpiredBookings,
+  getUserBookings,
+} from "@/controllers/Courses/coursePayments.controller";
 import {
   createInPersonCourse,
   deleteInPersonCourse,
@@ -29,11 +35,7 @@ inPersonCourseRoutes
 // 💳 الدفع وحجوزات الكورسات الحضورية
 
 // إنشاء جلسة الدفع
-inPersonCourseRoutes.post(
-  "/checkout-session",
-  verifyToken,
-  bookInPersonCourse
-);
+inPersonCourseRoutes.post("/checkout-session", verifyToken, bookInPersonCourse);
 
 // التحقق من الدفع
 inPersonCourseRoutes.post(
@@ -43,18 +45,14 @@ inPersonCourseRoutes.post(
 );
 
 // حجوزات المستخدم الحالي
-// inPersonCourseRoutes.get(
-//   "/my-bookings",
-//   verifyToken,
-//   getInPersonCourseBookings
-// );
+inPersonCourseRoutes.get("/bookings/user", verifyToken, getUserBookings);
 
-// كل المدفوعات (Admin فقط)
-// inPersonCourseRoutes.get(
-//   "/all-payments",
-//   verifyToken,
-//   authorizeRoles("admin"),
-//   getAllInPersonCoursePayments
-// );
+// تنظيف الحجوزات المنتهية الصلاحية (Admin فقط)
+inPersonCourseRoutes.delete(
+  "/cleanup-expired",
+  verifyToken,
+  authorizeRoles("admin"),
+  cleanupExpiredBookings
+);
 
 export default inPersonCourseRoutes;

@@ -1,25 +1,22 @@
+import { IInPersonCourseBooking } from "@/types/inPersonCourseBooking";
 import mongoose, { Schema, Document } from "mongoose";
-
-export interface IInPersonCourseBooking extends Document {
-  userId: mongoose.Types.ObjectId;
-  courseId: mongoose.Schema.Types.ObjectId;
-  inPersonCourseId: mongoose.Schema.Types.ObjectId;
-  paymentMethod: "stripe" | "cash" | "internal";
-  paymentStatus: "pending" | "paid" | "failed";
-  status: "pending" | "confirmed" | "cancelled";
-  stripeSessionId?: string;
-  expiresAt?: Date;
-  paidAt?: Date;
-}
 
 const inPersonCourseBookingSchema = new Schema<IInPersonCourseBooking>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    courseId: { type: Schema.Types.ObjectId, ref: "InPersonCourse", required: true },
-    inPersonCourseId: { type: Schema.Types.ObjectId, ref: "InPersonCourse", required: true },
+    courseId: {
+      type: Schema.Types.ObjectId,
+      ref: "InPersonCourse",
+      required: true,
+    },
+    inPersonCourseId: {
+      type: Schema.Types.ObjectId,
+      ref: "InPersonCourse",
+      required: true,
+    },
     paymentMethod: {
       type: String,
-      enum: ["stripe", "cash", "internal"],
+      enum: ["stripe", "cash", "external"],
       required: true,
     },
     paymentStatus: {
