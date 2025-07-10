@@ -4,6 +4,7 @@ import { stripe } from "@/utils/stripe";
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 
+//* For Online Booking
 export const createStripeCheckoutSession = asyncHandler(
   async (req: Request, res: Response) => {
     const { consultationId } = req.body;
