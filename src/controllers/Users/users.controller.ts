@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User from "@/models/user.model";
+import mongoose from "mongoose";
 
 /** @description Update user
  * @param {Request} req
@@ -75,7 +76,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const user = await User.findById(userId).select("-password");
-    
+
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -87,7 +88,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/** 
+/**
  * @description Get all users
  * @param {Request} req
  * @param {Response} res
@@ -95,24 +96,69 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
  * @route GET /api/users
  * @access Private (Admin only)
  */
-export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
+export const getAllUsers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const users = await User.find().select("-password");
-    
+
     res.status(200).json({
       status: "success",
       count: users.length,
-      data: users
+      data: users,
     });
   } catch (err) {
-    res.status(500).json({ 
+    res.status(500).json({
       status: "error",
-      message: "Server error" 
+      message: "Server error",
     });
   }
 };
 
-/** 
+/**
+ * @description Get user by id
+ * @param {Request} req
+ * @param {Response} res
+ * @returns {Promise<void>}
+ * @route GET /api/users/:id
+ * @access Private (Admin only)
+ */
+export const getUserById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = req.params.id;
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    res.status(400).json({ status: "error", message: "Invalid user ID" });
+    return;
+  }
+
+  try {
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+      res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "An unexpected error occurred",
+    });
+  }
+};
+
+/**
  * @description Delete a user
  * @param {Request} req
  * @param {Response} res
@@ -120,37 +166,40 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
  * @route DELETE /api/users/:id
  * @access Private (Admin only)
  */
-export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+export const deleteUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const user = await User.findById(req.params.id);
-    
+
     if (!user) {
-      res.status(404).json({ 
+      res.status(404).json({
         status: "error",
-        message: "User not found" 
+        message: "User not found",
       });
       return;
     }
 
     // Prevent deleting admin users
     if (user.role === "admin") {
-      res.status(403).json({ 
+      res.status(403).json({
         status: "error",
-        message: "Cannot delete admin users" 
+        message: "Cannot delete admin users",
       });
       return;
     }
 
     await User.findByIdAndDelete(req.params.id);
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       status: "success",
-      message: "User deleted successfully" 
+      message: "User deleted successfully",
     });
   } catch (err) {
-    res.status(500).json({ 
+    res.status(500).json({
       status: "error",
-      message: "Server error" 
+      message: "Server error",
     });
   }
 };
