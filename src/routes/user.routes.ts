@@ -6,8 +6,10 @@ import {
   updateUser, 
   updateUserPassword, 
   getAllUsers,
-  deleteUser
+  deleteUser,
+  getUserById
 } from "@/controllers/Users/users.controller";
+import { getUserBookings } from "@/controllers/Courses/coursePayments.controller";
 
 const userRouter = express.Router();
 
@@ -18,6 +20,7 @@ userRouter.put("/me/password", verifyToken, updateUserPassword);
 
 //* Admin routes
 userRouter.get("/", verifyToken, authorizeRoles("admin"), getAllUsers);
+userRouter.get("/:id", verifyToken, authorizeRoles("admin"), getUserById);
 userRouter.delete("/:id", verifyToken, authorizeRoles("admin"), deleteUser);
 
 export default userRouter;
