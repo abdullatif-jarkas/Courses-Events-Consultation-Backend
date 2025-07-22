@@ -15,6 +15,7 @@ import { apiLimiter } from "./middlewares/rateLimiter";
 import contactRoutes from "./routes/contact.routes";
 import userContentRoutes from "./routes/userContent.routes";
 import faqRoutes from "./routes/faq.routes";
+import podcastRoutes from "./routes/podcast.routes";
 
 //? Middleware
 app.use(
@@ -44,5 +45,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/user-content", userContentRoutes);
 app.use("/api/faqs", faqRoutes);
+app.use("/api/podcasts", podcastRoutes);
 
 export default app;
