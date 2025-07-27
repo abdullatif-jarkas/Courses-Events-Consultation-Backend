@@ -18,6 +18,8 @@ import {
   generateOTP,
   generateRefreshToken,
 } from "@/utils/authHelpers";
+import crypto from "crypto";
+import { setRefreshTokenCookie } from "@/utils/setRefreshTokenCookie";
 
 /** @description Register
  * @param {string} fullName
@@ -203,10 +205,6 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
  * @returns {Promise<void>}
  * @route POST /api/auth/forgot-password
  */
-
-import crypto from "crypto";
-import { setRefreshTokenCookie } from "@/utils/setRefreshTokenCookie";
-
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
     const parsed = forgotPasswordSchema.safeParse(req.body);
@@ -231,9 +229,10 @@ export const forgotPassword = asyncHandler(
     }
 
     const resetCode = crypto.randomBytes(32).toString("hex");
+    const hashedResetCode = crypto.createHash("sha256").update(resetCode).digest("hex");
     const expiryDate = new Date(Date.now() + 1000 * 60 * 10); // 10 minutes
 
-    user.resetCode = resetCode;
+    user.resetCode = hashedResetCode;
     user.resetCodeExpires = expiryDate;
     await user.save();
 
@@ -317,8 +316,10 @@ export const forgotPassword = asyncHandler(
 );
 
 /** @description Reset password
- * @param {string} token
- * @param {string} newPassword
+ * @param {string} email
+ * @param {string} resetCode
+ * @param {string} password
+ * @param {string} confirmPassword
  * @returns {Promise<void>}
  * @route POST /api/auth/reset-password
  */
@@ -335,7 +336,7 @@ export const resetPassword = asyncHandler(
       return;
     }
 
-    const { resetCode, password, confirmPassword } = parsed.data;
+    const { email, resetCode, password, confirmPassword } = parsed.data;
 
     if (password !== confirmPassword) {
       res.status(400).json({
@@ -345,7 +346,11 @@ export const resetPassword = asyncHandler(
       return;
     }
 
-    const user = await User.findOne({ resetCode });
+    //? Hash the incoming resetCode to match stored one
+    const hashedResetCode = crypto.createHash("sha256").update(resetCode).digest("hex");
+
+    const user = await User.findOne({ email, resetCode: hashedResetCode });
+
     if (!user || !user.resetCodeExpires) {
       res.status(400).json({
         status: "error",
@@ -366,6 +371,7 @@ export const resetPassword = asyncHandler(
     user.password = await bcrypt.hash(password, 10);
     user.resetCode = undefined;
     user.resetCodeExpires = undefined;
+
     await user.save();
 
     res.status(200).json({
