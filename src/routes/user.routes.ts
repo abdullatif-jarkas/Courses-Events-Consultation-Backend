@@ -9,7 +9,6 @@ import {
   deleteUser,
   getUserById
 } from "@/controllers/Users/users.controller";
-import { getUserBookings } from "@/controllers/Courses/coursePayments.controller";
 
 const userRouter = express.Router();
 
