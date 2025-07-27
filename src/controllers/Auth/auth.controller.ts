@@ -132,13 +132,24 @@ export const login: RequestHandler = asyncHandler(async (req: Request, res: Resp
   const accessToken = generateAccessToken(user._id, user.role);
   const refreshToken = generateRefreshToken(user._id);
 
-  setRefreshTokenCookie(res, refreshToken);
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+  
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  // setRefreshTokenCookie(res, refreshToken);
 
   res.status(200).json({
     status: "success",
     message: "Logged in successfully",
     data: {
-      accessToken,
       user: {
         _id: user._id,
         fullName: user.fullName,

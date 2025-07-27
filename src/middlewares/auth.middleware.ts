@@ -13,13 +13,13 @@ export const verifyToken = (
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
+  // ✅ جلب التوكن من الكوكيز بدلاً من الهيدر
+  const token = req.cookies?.accessToken;
 
   if (!token) {
     res.status(401).json({
       status: "error",
-      message: "Unauthorized: No token provided",
+      message: "Unauthorized: No access token provided",
     });
     return;
   }
@@ -31,8 +31,9 @@ export const verifyToken = (
   } catch (err) {
     res.status(401).json({
       status: "error",
-      message: "Unauthorized: Invalid token",
+      message: "Unauthorized: Invalid or expired token",
     });
+    return;
   }
 };
 
