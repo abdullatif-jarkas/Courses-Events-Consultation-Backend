@@ -9,8 +9,9 @@ import { Consultation } from "@/models/consultations/consultation.model";
 
 export const createConsultation = asyncHandler(
   async (req: Request, res: Response) => {
-    const { consultationType, scheduledAt, price } = req.body;
+    const { scheduledAt, price } = req.body;
 
+    //? التحقق من السعر
     if (!price || typeof price !== "number" || price <= 0) {
       res.status(400).json({
         status: "error",
@@ -19,7 +20,27 @@ export const createConsultation = asyncHandler(
       return;
     }
 
-    const exists = await Consultation.findOne({ scheduledAt });
+    //? التحقق من التاريخ
+    if (!scheduledAt || isNaN(Date.parse(scheduledAt))) {
+      res.status(400).json({ status: "error", message: "Invalid date" });
+      return;
+    }
+
+    const scheduledDate = new Date(scheduledAt);
+    if (scheduledDate < new Date()) {
+      res.status(400).json({
+        status: "error",
+        message: "You cannot schedule a consultation in the past.",
+      });
+      return;
+    }
+
+    //? توحيد التاريخ (اختياري حسب المنطق عندك)
+    scheduledDate.setSeconds(0);
+    scheduledDate.setMilliseconds(0);
+
+    //? التحقق من عدم وجود استشارة بنفس الوقت
+    const exists = await Consultation.findOne({ scheduledAt: scheduledDate });
     if (exists) {
       res.status(400).json({
         status: "error",
@@ -28,29 +49,55 @@ export const createConsultation = asyncHandler(
       return;
     }
 
+    //* الإنشاء
     const consultation = await Consultation.create({
-      consultationType,
-      scheduledAt,
+      consultationType: "online",
+      scheduledAt: scheduledDate,
       price,
       status: "available",
     });
 
-    res.status(201).json({ status: "success", data: consultation });
+    res.status(201).json({
+      status: "success",
+      data: {
+        id: consultation._id,
+        scheduledAt: consultation.scheduledAt,
+        price: consultation.price,
+      },
+    });
   }
 );
 
 /**
- * @route   GET /api/consultations/available
+ * @route   GET /api/consultations/available?month=7&year=2025
  * @access  Private (User)
  */
 export const getAvailableConsultations = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const consultations = await Consultation.find({ status: "available" }).sort(
-      { scheduledAt: 1 }
-    );
+  async (req: Request, res: Response) => {
+    const { month, year } = req.query;
+
+    const filter: any = { status: "available" };
+
+    // إذا تم تمرير month و year بشكل صحيح، نقوم بتحديد الفترة الزمنية
+    const monthNum = Number(month);
+    const yearNum = Number(year);
+    console.log(monthNum, yearNum);
+    if (!isNaN(monthNum) && !isNaN(yearNum) &&
+      monthNum >= 1 &&
+      monthNum <= 12 &&
+      yearNum >= 1900
+    ) {
+      const startDate = new Date(yearNum, monthNum - 1, 1);
+      const endDate = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+      filter.scheduledAt = { $gte: startDate, $lte: endDate };
+    }
+    // جلب الاستشارات المتاحة (كاملة أو ضمن شهر معين)
+    const consultations = await Consultation.find(filter).sort({ scheduledAt: 1 });
+
     res.status(200).json({ status: "success", data: consultations });
   }
 );
+
 
 /**
  * @route   PUT /api/consultations/book/:id
