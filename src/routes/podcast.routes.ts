@@ -7,7 +7,7 @@ import {
   updatePodcast,
   deletePodcast,
   togglePodcastStatus,
-} from "@/controllers/podcast.controller";
+} from "@/controllers/Podcasts/podcast.controller";
 import verifyToken from "@/middlewares/auth.middleware";
 import { authorizeRoles } from "@/middlewares/role.middleware";
 import rateLimit from "express-rate-limit";

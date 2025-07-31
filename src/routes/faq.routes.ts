@@ -6,7 +6,7 @@ import {
   updateFAQ,
   deleteFAQ,
   toggleFAQStatus,
-} from "@/controllers/faq.controller";
+} from "@/controllers/FAQs/faq.controller";
 import verifyToken from "@/middlewares/auth.middleware";
 import { authorizeRoles } from "@/middlewares/role.middleware";
 import rateLimit from "express-rate-limit";

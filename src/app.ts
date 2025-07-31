@@ -16,6 +16,7 @@ import contactRoutes from "./routes/contact.routes";
 import userContentRoutes from "./routes/userContent.routes";
 import faqRoutes from "./routes/faq.routes";
 import podcastRoutes from "./routes/podcast.routes";
+import stripeRoutes from "./routes/stripe.routes";
 
 //? Middleware
 app.use(
@@ -24,6 +25,9 @@ app.use(
     credentials: true, //? to allow cookies to be sent with the request
   })
 );
+
+app.use("/api/stripe", stripeRoutes);
+
 app.use(express.json());
 app.use(helmet());
 app.disable("x-powered-by");

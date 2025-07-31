@@ -1,21 +1,20 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { JWT_ACCESS_SECRET } from "@/config/config";
+import User from "@/models/user.model";
 
 declare module "express" {
   interface Request {
-    user?: JwtPayload;
+    user?: any;
   }
 }
 
-export const verifyToken = (
+export const verifyToken = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  // ✅ جلب التوكن من الكوكيز بدلاً من الهيدر
   const token = req.cookies?.accessToken;
-
   if (!token) {
     res.status(401).json({
       status: "error",
@@ -26,7 +25,17 @@ export const verifyToken = (
 
   try {
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
-    req.user = decoded;
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      res.status(401).json({
+        status: "error",
+        message: "Unauthorized: User not found",
+      });
+      return;
+    }
+
+    req.user = user;
+
     next();
   } catch (err) {
     res.status(401).json({

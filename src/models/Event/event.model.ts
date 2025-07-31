@@ -10,12 +10,28 @@ const eventSchema = new Schema({
     required: true,
   },
   date: {
-    type: String,
+    type: Date,
     required: true,
   },
   location: {
     type: String,
     required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  type: {
+    type: String,
+    enum: ["coffee_meet", "regular"],
+    required: true,
+    default: "regular",
+  },
+  seats: {
+    type: Number,
+    required: true,
+    min: 1,
   },
 });
 

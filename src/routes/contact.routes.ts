@@ -1,5 +1,5 @@
 import express from "express";
-import { sendContactForm } from "@/controllers/contact.controller";
+import { sendContactForm } from "@/controllers/Contact/contact.controller";
 
 const contactRoutes = express.Router();
 
