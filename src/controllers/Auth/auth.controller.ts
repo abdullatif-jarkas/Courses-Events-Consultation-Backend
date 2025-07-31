@@ -35,7 +35,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   if (!parsed.success) {
     res.status(400).json({
       status: "error",
-      message: "Invalid input data",
+      message: parsed.error.errors[0]?.message || "Invalid input data",
       errors: parsed.error.flatten().fieldErrors,
     });
     return;
@@ -43,7 +43,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const { fullName, email, password, phoneNumber } = parsed.data;
 
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email }).lean();
   if (existingUser) {
     res.status(409).json({
       status: "error",
@@ -52,9 +52,18 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
+  const existingPhone = await User.findOne({ phoneNumber });
+  if (existingPhone) {
+    res.status(409).json({
+      status: "error",
+      message: "Phone number is already registered",
+    });
+    return;
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user: IUser = await User.create({
+  const user = await User.create({
     fullName,
     email,
     password: hashedPassword,
@@ -68,13 +77,15 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     sameSite: "strict",
-    maxAge: 15 * 60 * 1000, //? 15 Minutes
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 15 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, //? 7 Days
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.status(201).json({
@@ -98,104 +109,115 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
  * @route POST /api/auth/login
  */
 
-export const login: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      status: "error",
-      message: "Invalid input data",
-      errors: parsed.error.flatten().fieldErrors,
+export const login: RequestHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        status: "error",
+        message: "Invalid input data",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+      return;
+    }
+
+    const { email, password } = parsed.data;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+      return;
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.password as string
+    );
+    if (!isPasswordValid) {
+      res.status(401).json({
+        status: "error",
+        message: "Invalid credentials",
+      });
+      return;
+    }
+
+    const accessToken = generateAccessToken(user._id, user.role);
+    const refreshToken = generateRefreshToken(user._id);
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000, // 15 minutes
     });
-    return;
-  }
 
-  const { email, password } = parsed.data;
-  const user = await User.findOne({ email });
-
-  if (!user) {
-    res.status(404).json({
-      status: "error",
-      message: "User not found",
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    return;
-  }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password as string);
-  if (!isPasswordValid) {
-    res.status(401).json({
-      status: "error",
-      message: "Invalid credentials",
-    });
-    return;
-  }
+    // setRefreshTokenCookie(res, refreshToken);
 
-  const accessToken = generateAccessToken(user._id, user.role);
-  const refreshToken = generateRefreshToken(user._id);
-
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    sameSite: "strict",
-    maxAge: 15 * 60 * 1000, // 15 minutes
-  });
-  
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
-
-  // setRefreshTokenCookie(res, refreshToken);
-
-  res.status(200).json({
-    status: "success",
-    message: "Logged in successfully",
-    data: {
-      user: {
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
+    res.status(200).json({
+      status: "success",
+      message: "Logged in successfully",
+      data: {
+        user: {
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+        },
       },
-    },
-  });
-});
+    });
+  }
+);
 
 /** @description Refresh token
  * @returns {Promise<void>}
  * @route POST /api/auth/refresh-token
  */
 
-export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
-  const token = req.cookies.refreshToken;
+export const refreshToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    const token = req.cookies.refreshToken;
 
-  if (!token) {
-    res.status(401).json({ status: "error", message: "No refresh token" });
-    return;
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as { userId: string };
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      res.status(401).json({ status: "error", message: "User not found" });
+    if (!token) {
+      res.status(401).json({ status: "error", message: "No refresh token" });
       return;
     }
 
-    const newAccessToken = generateAccessToken(user._id, user.role);
+    try {
+      const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as {
+        userId: string;
+      };
+      const user = await User.findById(decoded.userId);
 
-    res.status(200).json({
-      status: "success",
-      message: "Access token refreshed",
-      data: {
-        accessToken: newAccessToken,
-      },
-    });
-  } catch (err) {
-    res.status(403).json({ status: "error", message: "Invalid refresh token" });
+      if (!user) {
+        res.status(401).json({ status: "error", message: "User not found" });
+        return;
+      }
+
+      const newAccessToken = generateAccessToken(user._id, user.role);
+
+      res.status(200).json({
+        status: "success",
+        message: "Access token refreshed",
+        data: {
+          accessToken: newAccessToken,
+        },
+      });
+    } catch (err) {
+      res
+        .status(403)
+        .json({ status: "error", message: "Invalid refresh token" });
+    }
   }
-});
+);
 
 /** @description Logout
  * @returns {Promise<void>}
@@ -240,7 +262,10 @@ export const forgotPassword = asyncHandler(
     }
 
     const resetCode = crypto.randomBytes(32).toString("hex");
-    const hashedResetCode = crypto.createHash("sha256").update(resetCode).digest("hex");
+    const hashedResetCode = crypto
+      .createHash("sha256")
+      .update(resetCode)
+      .digest("hex");
     const expiryDate = new Date(Date.now() + 1000 * 60 * 10); // 10 minutes
 
     user.resetCode = hashedResetCode;
@@ -358,7 +383,10 @@ export const resetPassword = asyncHandler(
     }
 
     //? Hash the incoming resetCode to match stored one
-    const hashedResetCode = crypto.createHash("sha256").update(resetCode).digest("hex");
+    const hashedResetCode = crypto
+      .createHash("sha256")
+      .update(resetCode)
+      .digest("hex");
 
     const user = await User.findOne({ email, resetCode: hashedResetCode });
 
@@ -391,6 +419,3 @@ export const resetPassword = asyncHandler(
     });
   }
 );
-
-
-
